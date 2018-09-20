@@ -1,4 +1,4 @@
-# VERSION 1.9.0-4
+# VERSION 1.10.0-2
 # AUTHOR: Matthieu "Puckel_" Roisil
 # DESCRIPTION: Basic Airflow container
 # BUILD: docker build --rm -t puckel/docker-airflow .
@@ -12,16 +12,9 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV TERM linux
 
 # Airflow
-# install from source|pip ?
-ARG INSTALL_FROM=pip
-ARG AIRFLOW_VERSION=1.9.0
-ARG AIRFLOW_EXTRAS=async,celery,crypto,jdbc,hdfs,hive,azure,gcp_api,emr,password,postgres,slack,ssh,mysql
+ARG AIRFLOW_VERSION=1.10.0
 ARG AIRFLOW_HOME=/usr/local/airflow
-
-# http://label-schema.org/rc1/
-LABEL org.label-schema.name="Apache Airflow ${AIRFLOW_VERSION}" \
-      org.label-schema.url=https://github.com/apache/incubator-airflow \
-      org.label-schema.version=$AIRFLOW_VERSION
+ENV AIRFLOW_GPL_UNIDECODE yes
 
 # Define en_US.
 ENV LANGUAGE en_US.UTF-8
@@ -37,19 +30,16 @@ RUN set -ex \
         libsasl2-dev \
         libssl-dev \
         libffi-dev \
-        build-essential \
         libblas-dev \
         liblapack-dev \
         libpq-dev \
         git \
-        gcc \
-	g++ \
-	ca-certificates \
     ' \
     && apt-get update -yqq \
     && apt-get upgrade -yqq \
     && apt-get install -yqq --no-install-recommends \
         $buildDeps \
+        build-essential \
         python3-pip \
         python3-requests \
         mysql-client \
@@ -66,20 +56,13 @@ RUN set -ex \
     && useradd -ms /bin/bash -d ${AIRFLOW_HOME} airflow \
     && pip install -U pip setuptools wheel \
     && pip install Cython \
-    && pip install kubernetes \
-    && pip install cryptography \
     && pip install pytz \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
-    && if [ "$INSTALL_FROM" = "source" ]; then\
-           pip install --no-cache-dir git+https://github.com/apache/incubator-airflow@${AIRFLOW_VERSION}#egg=apache-airflow[$AIRFLOW_EXTRAS];\
-       else\
-           pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS]==$AIRFLOW_VERSION;\
-       fi\
-    && pip install celery[redis]==4.1.1 \
+    && pip install apache-airflow[crypto,celery,postgres,hive,jdbc,mysql]==$AIRFLOW_VERSION \
+    && pip install 'celery[redis]>=4.1.1,<4.2.0' \
     && apt-get purge --auto-remove -yqq $buildDeps \
-    && apt-get remove -y --purge gcc g++ git\
     && apt-get autoremove -yqq --purge \
     && apt-get clean \
     && rm -rf \
