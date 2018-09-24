@@ -12,9 +12,17 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV TERM linux
 
 # Airflow
+# install from source|pip ?
+ARG INSTALL_FROM=pip
 ARG AIRFLOW_VERSION=1.10.0
+ARG AIRFLOW_EXTRAS=async,celery,crypto,jdbc,hdfs,hive,azure,gcp_api,emr,password,postgres,slack,ssh,mysql
 ARG AIRFLOW_HOME=/usr/local/airflow
 ENV AIRFLOW_GPL_UNIDECODE yes
+
+# http://label-schema.org/rc1/
+LABEL org.label-schema.name="Apache Airflow ${AIRFLOW_VERSION}" \
+      org.label-schema.url=https://github.com/apache/incubator-airflow \
+      org.label-schema.version=$AIRFLOW_VERSION
 
 # Define en_US.
 ENV LANGUAGE en_US.UTF-8
@@ -34,6 +42,9 @@ RUN set -ex \
         liblapack-dev \
         libpq-dev \
         git \
+        gcc \
+        g++ \
+        ca-certificates \
     ' \
     && apt-get update -yqq \
     && apt-get upgrade -yqq \
@@ -56,11 +67,16 @@ RUN set -ex \
     && useradd -ms /bin/bash -d ${AIRFLOW_HOME} airflow \
     && pip install -U pip setuptools wheel \
     && pip install Cython \
+    && pip install kubernetes \
     && pip install pytz \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
-    && pip install apache-airflow[crypto,celery,postgres,hive,jdbc,mysql]==$AIRFLOW_VERSION \
+    && if [ "$INSTALL_FROM" = "source" ]; then\
+           pip install --no-cache-dir git+https://github.com/apache/incubator-airflow@${AIRFLOW_VERSION}#egg=apache-airflow[$AIRFLOW_EXTRAS];\
+       else\
+           pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS]==$AIRFLOW_VERSION;\
+       fi\
     && pip install 'celery[redis]>=4.1.1,<4.2.0' \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
