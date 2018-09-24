@@ -68,6 +68,7 @@ RUN set -ex \
     && pip install -U pip setuptools wheel \
     && pip install Cython \
     && pip install kubernetes \
+    && pip install cryptography \
     && pip install pytz \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
